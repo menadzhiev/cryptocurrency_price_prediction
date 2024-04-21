@@ -1,0 +1,44 @@
+\documentclass{article}
+
+\usepackage[cm]{fullpage}
+\usepackage[russian]{babel}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{mdframed}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{indentfirst}
+\usepackage{titlesec}
+\usepackage{accents}
+\usepackage{hyperref}
+
+\usepackage{float}
+
+% Headers
+\titleformat{\section}{\normalfont \Large \bfseries}{\thesection .}{0.2cm}{}
+\titlespacing{\section}{0pt}{*-1}{*-1}
+
+\titleformat{\subsection}{\normalfont \large \bfseries}{\thesubsection .}{0.2cm}{}
+\titlespacing{\subsection}{3pt}{*-1}{*-2}
+
+\titleformat{\subsubsection}{\normalfont \bfseries}{\thesubsubsection .}{0.2cm}{}
+\titlespacing{\subsubsection}{6pt}{*-1}{*-2}
+
+% Space between rows
+\linespread{1.5}
+
+% Space between paragraphs
+\setlength{\parindent}{1cm}
+\setlength{\parskip}{0.5cm}
+
+% Commands
+\newcommand{\R}{\mathbb R}
+\newcommand{\E}[1]{\textsf E \left[ #1 \right]}
+\newcommand{\Var}[1]{\textsf{Var} \left( #1 \right)}
+\newcommand{\intR}{\int_{\R}}
+\newcommand{\arc}[1]{\accentset{\smallsmile}{#1}}
+
+% Operators
