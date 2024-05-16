@@ -209,15 +209,76 @@ h \in \{ 5, 10, 20, 50, 100, 200 \}, \quad \sigma \in \{ 0, 0.001, 0.01, 0.03, 0
 
 \subsection{Многошаговое прогнозирование}
 
-В отличие от \textit{одношагового} прогнозирования \textit{многошаговое} строится следующим образом:
+В отличие от \textit{одношагового} прогнозирования \textit{многошаговое} подразумевает обучение каждый раз новой модели при прогнозировании на один период. Так, например, если в наличии имеются данные за 100 дней, которые были поделены на тренировчную выборку в 90 дней, и тестовую - в 10 дней, то для прогнозирования показателя в 91-й день модель будет обучена на данных предыдущих 90 дней, для прогнозирования на 92-й день путем добавления фактического значения 91-го дня из тестовой выборки в тренировчную будут использованы данные за 91 предыдущий день и так далее. Затем, после получения прогнозов на всю тестовую выборку, качество модели оценивается и делаются окончательные выводы.
 
-\vspace{-15pt}
+Теперь рассмотрим результат, полученный при применении \textit{многошагового} прогнозирования в сравнении одношаговым в рамках нашей задачи (Рис. 9). Видно, что оба подхода фактически дали идентичные результаты, причем средняя абсолютная разница прогнозов по значениям $\sigma$ составила $0.008$, следовательно, модели отличаются, но при этом выделяют схожие закономерности. Вероятно, причиной этого стала сопособоность LSTM-моделей выделять зависимости в последовательных данных, которая дает возможность обучить модель для качественных прогнозов только один раз и делает \textit{многошаговое} прогнозирование избыточным.
 
-\begin{enumerate}
-    
-    \item
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{/Users/mmenadzhiev/Desktop/Studying/Project/Estimation of the price/Final code/Images/os_ms_comparison_h=20.png}
+    \caption{Сравнение прогнозов \textit{одношагового} и \textit{многошагового} подходов при фиксированном $h = 20$}
+\end{figure}
 
-\end{enumerate}
+\section{ОЦЕНКА ПАРАМЕТРА $\sigma$}
+
+\subsection{Описание подхода к оцениванию}
+
+При оценке функции $f$ мы сделали предположение о постоянстве $\sigma$ и рассматривали его как гиперпараметр, то есть подбирали значения вручную. Очевидно, такой подход не является совершенным, и в качестве улучшения модели предлагается произвести статистическую оценку данного параметра. Для этого воспользуемся методом контрастов (М-оценками).
+
+Пусть у нас есть выборка $X_1, X_2, ... , X_n$ - независимые одинаково распределенные случайные величины с распределением $\mathcal F_{\theta}$, где $\theta$ - некоторый набор параметров этого распределения. Тогда функция $\psi(X, \theta')$ называется \textit{контрастом}, если $arg \, \underset{\theta'}{\min} \, \textsf E_{\theta} \psi(X, \theta') = \theta$, где $X \overset{d}{=} X_i$. Таким образом, $\hat{\theta}_n =  arg \, \underset{\theta'}{\min} \frac 1n \sum\limits_{i=1}^n \psi(X_i, \theta')$.
+
+Теперь покажем то, как этот метод может быть применим в нашем случае, а именно вспомним уравнение (8)
+\[
+\frac{ S_{k \Delta} - S_{(k - 1) \Delta}}{\sqrt{\Delta}} = \left( f \big( M_{k \Delta} \big) - f \big( M_{(k - 1) \Delta} \big) \right) \sqrt{\Delta} +  \sigma Z_{k \Delta}
+\]
+\[
+\Updownarrow
+\]
+\[
+\sigma Z_{k \Delta} = \frac{ S_{k \Delta} - S_{(k - 1) \Delta}}{\sqrt{\Delta}} -  \left( f \big( M_{k \Delta} \big) - f \big( M_{(k - 1) \Delta} \big) \right) \sqrt{\Delta}, \quad Z_{k \Delta} \sim \mathcal N (0, 1).
+\]
+
+Заметим, что нам доступны элементы с номерами $h + 1, h + 2, ..., n$. Следовательно, с учетом того, что 50 последних наблюдений относятся к тестовой выборке, можем переобозначить номера следующим образом:
+\[
+1 \leftrightarrow h + 1, ... , m \leftrightarrow n - 50,
+\]
+после чего получим следующую выборку
+\[
+X_1, X_2, ..., X_m \sim \mathcal N(0, \sigma^2).
+\]
+
+Таким образом, осталось найти \textit{контраст} $\psi(X, \sigma'), \; X = (X_1, ..., X_m)$. Пусть $p(x, \sigma), \; x = (x_1, ..., x_m)$ - совместная плотность нормального распределения $\mathcal N(0, \sigma^2)$. Рассмотрим $\psi(X, \sigma') = -\log p(X, \sigma')$, тогда
+\[
+arg \, \underset{\sigma'}{\min} \, \textsf E_{\sigma} \left[ \psi(X, \sigma') \right] = arg \, \underset{\sigma'}{\min} \, \textsf E_{\sigma} \left[ -\log p(X, \sigma') \right] = arg \, \underset{\sigma'}{\min} \, \int\limits_{\R^m} -\log p(x, \sigma') p(x, \sigma) dx =
+\]
+\[
+= arg \, \underset{\sigma'}{\min} \, \left( \int\limits_{\R^m} -\log p(x, \sigma') p(x, \sigma) dx + \int\limits_{\R^m} \log p(x, \sigma) p(x, \sigma) dx  \right) =  arg \, \underset{\sigma'}{\min} \, \int\limits_{\R^m} \log \left( \frac{p(x, \sigma)}{p(x, \sigma')} \right) p(x, \sigma) dx = \sigma.
+\]
+
+Следовательно, $\psi(X, \sigma') = -\log p(X, \sigma')$ - действительно \textit{контраст}, и
+\[
+\hat{\sigma}_n = arg \, \underset{\sigma'}{\min} \, \frac 1n \sum\limits_{i=1}^n \left[ -\log p(X_i, \sigma') \right] = arg \, \underset{\sigma'}{\max} \sum\limits_{i=1}^n \log p(X_i, \sigma') = arg \, \underset{\sigma'}{\max} \sum\limits_{i=1}^n \log \left( \frac{1}{\sqrt{2 \pi} \sigma'} e^{-\frac{X_i^2}{2 \sigma'^2}} \right) =
+\]
+\[
+= arg \, \underset{\sigma'}{\max} \sum\limits_{i=1}^n \left[ -\log \sigma' - \frac{X_i^2}{2 \sigma'^2} \right] = arg \, \underset{\sigma'}{\max} \left( -n \log \sigma' - \frac{1}{2 \sigma'^2} \sum\limits_{i=1}^n X_i^2 \right) =: arg \, \underset{\sigma'}{\max} \, \zeta(\sigma').
+\]
+
+Найдем максимум функции $\zeta(\sigma')$:
+\[
+\frac{\partial \zeta(\sigma')}{\partial \sigma'} = -\frac{n}{\sigma'} + \frac{1}{\sigma'^3} \sum\limits_{i=1}^n X_i^2 = 0 \Leftrightarrow \sigma'^2 = \frac{1}{n} \sum\limits_{i=1}^n X_i^2 \Rightarrow \sigma' = \sqrt{\frac{1}{n} \sum\limits_{i=1}^n X_i^2}.
+\]
+
+Таким образом, оценка параметра $\sigma$ в нашем случае есть
+\[
+\hat{\sigma}_m = \sqrt{\frac{1}{m} \sum\limits_{i=1}^m X_i^2}.
+\]
+
+\subsection{Численная оценка}
+
+После расчетов по вышеописанному алгоритму получим, что $\hat{\sigma}_m = 0.047$.
+
+\section{Итоговый прогноз}
+
 
 
 \section{Источники}
